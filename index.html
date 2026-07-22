@@ -472,21 +472,21 @@
             <label for="syncModeInput">同步方式</label>
             <select id="syncModeInput">
               <option value="none">仅本机保存</option>
-              <option value="relay">安全中转服务（推荐）</option>
+              <option value="relay">腾讯云安全同步（推荐）</option>
               <option value="gist">直接连接 GitHub Gist（兼容模式）</option>
             </select>
           </div>
           <div id="relayFields" class="sync-panel hidden">
-            <div class="field"><label for="relayUrlInput">中转服务地址</label><input id="relayUrlInput" type="url" placeholder="https://xxxx.workers.dev" /></div>
+            <div class="field"><label for="relayUrlInput">同步接口地址</label><input id="relayUrlInput" type="url" placeholder="https://你的云函数接口地址" /></div>
             <div class="field" style="margin-top:10px"><label for="familyKeyInput">家庭同步码</label><input id="familyKeyInput" type="password" placeholder="留空则保留已保存内容" /></div>
-            <div class="sync-note" style="margin-top:9px">GitHub Token 保存在服务端，网页源码中不出现密钥。项目包内附 Cloudflare Worker 示例。</div>
+            <div class="sync-note" style="margin-top:9px">数据经安全接口同步到腾讯云数据库；家庭同步码仅保存在本机浏览器中，不会写入网页源码。</div>
           </div>
           <div id="gistFields" class="sync-panel hidden">
             <div class="field"><label for="gistIdInput">Gist ID</label><input id="gistIdInput" placeholder="输入 Gist ID" /></div>
             <div class="field" style="margin-top:10px"><label for="gistTokenInput">GitHub Token</label><input id="gistTokenInput" type="password" placeholder="留空则保留已保存内容" /></div>
             <div class="sync-note" style="margin-top:9px">Token 仅保存在当前设备浏览器中，不会写进 HTML；但仍可能被设备上的其他脚本读取，安全性低于中转服务。</div>
           </div>
-          <label class="checkbox-line"><input id="autoSyncInput" type="checkbox" checked /> 修改后自动上传，并每 30 秒检查更新</label>
+          <label class="checkbox-line"><input id="autoSyncInput" type="checkbox" checked /> 智能同步：修改后立即上传，活跃时 5 秒检查、空闲时 30 秒检查，切到后台暂停</label>
         </div>
 
         <div class="dialog-actions"><button type="button" class="secondary-button" data-close="settingsDialog">取消</button><button type="submit" class="primary-button">保存设置</button></div>
@@ -514,7 +514,26 @@
       const dateTime = (date, time) => new Date(`${date}T${time || '00:00'}:00`);
       const fmtTime = (iso) => iso ? new Date(iso).toLocaleTimeString('zh-CN', {hour:'2-digit', minute:'2-digit', hour12:false}) : '';
       const esc = (s='') => String(s).replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
-      const stable = (obj) => JSON.stringify(obj);
+      const canonicalize = (value) => {
+        if (Array.isArray(value)) return value.map(canonicalize);
+        if (value && typeof value === 'object') {
+          return Object.keys(value).sort().reduce((out, key) => {
+            out[key] = canonicalize(value[key]);
+            return out;
+          }, {});
+        }
+        return value;
+      };
+      const comparableState = (data) => {
+        const copy = normalizeState(data);
+        delete copy.updatedAt;
+        return canonicalize(copy);
+      };
+      const sameStateData = (a, b) => JSON.stringify(comparableState(a)) === JSON.stringify(comparableState(b));
+      const ACTIVE_SYNC_MS = 2 * 60 * 1000;
+      const ACTIVE_SYNC_INTERVAL = 5000;
+      const IDLE_SYNC_INTERVAL = 30000;
+      const RETRY_DELAYS = [10000, 30000, 60000, 120000];
 
       function defaultState() {
         return {
@@ -536,7 +555,8 @@
           familyKey: '',
           gistId: '',
           gistToken: '',
-          autoSync: true
+          autoSync: true,
+          pendingUpload: false
         };
       }
 
@@ -552,7 +572,12 @@
       let syncBusy = false;
       let toastTimer = null;
       let syncTimer = null;
+      let pollTimer = null;
+      let pollDueAt = 0;
       let noteTimer = null;
+      let lastActivityAt = Date.now();
+      let lastSyncStartedAt = 0;
+      let syncFailureCount = 0;
 
       function normalizeState(data) {
         const base = defaultState();
@@ -598,17 +623,67 @@
         return state.days[key];
       }
 
+      function markActivity() {
+        lastActivityAt = Date.now();
+        scheduleNextPoll();
+      }
+
       function persist({sync=true, render=true} = {}) {
         state.updatedAt = nowISO();
         if (config.operator && !state.operators.includes(config.operator)) state.operators.push(config.operator);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         if (render) renderAll();
-        if (sync && config.autoSync && config.syncMode !== 'none') scheduleSync();
+        markActivity();
+        if (sync && config.autoSync && config.syncMode !== 'none') {
+          config.pendingUpload = true;
+          saveConfig();
+          scheduleSync();
+        }
       }
 
       function scheduleSync() {
         clearTimeout(syncTimer);
-        syncTimer = setTimeout(() => syncNow({silent:true}), 850);
+        syncTimer = setTimeout(() => syncNow({silent:true, intent:'upload'}), 1000);
+      }
+
+      function clearPollTimer() {
+        clearTimeout(pollTimer);
+        pollTimer = null;
+        pollDueAt = 0;
+      }
+
+      function nextPollDelay() {
+        if (!config.autoSync || !isSyncConfigured() || document.hidden || navigator.onLine === false) return null;
+        if (syncFailureCount > 0) return RETRY_DELAYS[Math.min(syncFailureCount - 1, RETRY_DELAYS.length - 1)];
+        return Date.now() - lastActivityAt < ACTIVE_SYNC_MS ? ACTIVE_SYNC_INTERVAL : IDLE_SYNC_INTERVAL;
+      }
+
+      function scheduleNextPoll(delayOverride) {
+        const delay = Number.isFinite(delayOverride) ? delayOverride : nextPollDelay();
+        if (delay == null) {
+          clearPollTimer();
+          return;
+        }
+        const safeDelay = Math.max(500, delay);
+        const dueAt = Date.now() + safeDelay;
+        if (pollTimer && pollDueAt && pollDueAt <= dueAt) return;
+        clearPollTimer();
+        pollDueAt = dueAt;
+        pollTimer = setTimeout(() => {
+          pollTimer = null;
+          pollDueAt = 0;
+          syncNow({silent:true, intent:'poll'});
+        }, safeDelay);
+      }
+
+      function requestImmediateSync() {
+        if (!config.autoSync || !isSyncConfigured() || document.hidden || navigator.onLine === false) return;
+        const elapsed = Date.now() - lastSyncStartedAt;
+        if (syncBusy || elapsed < 1800) {
+          scheduleNextPoll(Math.max(500, 1800 - elapsed));
+          return;
+        }
+        syncNow({silent:true, intent:'poll'});
       }
 
       function showToast(message) {
@@ -666,15 +741,15 @@
             note: newer(l.note, r.note) || { text:'', operator:'', updatedAt:'' }
           };
         });
-        merged.updatedAt = [local.updatedAt, remote.updatedAt, nowISO()].sort().at(-1);
+        merged.updatedAt = [local.updatedAt, remote.updatedAt].filter(Boolean).sort().at(-1) || nowISO();
         return merged;
       }
 
       async function fetchRemote() {
         if (config.syncMode === 'relay') {
           const response = await fetch(config.relayUrl.replace(/\/$/, ''), { headers: { 'X-Family-Key': config.familyKey } });
-          if (response.status === 404) return defaultState();
-          if (!response.ok) throw new Error(`中转服务读取失败（${response.status}）`);
+          if (response.status === 404) return null;
+          if (!response.ok) throw new Error(`云端读取失败（${response.status}）`);
           return normalizeState(await response.json());
         }
         if (config.syncMode === 'gist') {
@@ -684,14 +759,14 @@
           if (!response.ok) throw new Error(`Gist 读取失败（${response.status}）`);
           const gist = await response.json();
           const file = gist.files?.[CLOUD_FILE];
-          if (!file) return defaultState();
+          if (!file) return null;
           let content = file.content;
           if (file.truncated && file.raw_url) {
             const raw = await fetch(file.raw_url, { headers: { 'Authorization': `Bearer ${config.gistToken}` } });
             if (!raw.ok) throw new Error(`Gist 数据文件读取失败（${raw.status}）`);
             content = await raw.text();
           }
-          if (!content) return defaultState();
+          if (!content) return null;
           return normalizeState(JSON.parse(content));
         }
         throw new Error('尚未配置同步');
@@ -704,8 +779,9 @@
             headers: { 'Content-Type': 'application/json', 'X-Family-Key': config.familyKey },
             body: JSON.stringify(data)
           });
-          if (!response.ok) throw new Error(`中转服务写入失败（${response.status}）`);
-          return;
+          if (!response.ok) throw new Error(`云端写入失败（${response.status}）`);
+          const body = await response.json().catch(() => null);
+          return body ? normalizeState(body) : normalizeState(data);
         }
         if (config.syncMode === 'gist') {
           const response = await fetch(`https://api.github.com/gists/${encodeURIComponent(config.gistId)}`, {
@@ -714,33 +790,64 @@
             body: JSON.stringify({ files: { [CLOUD_FILE]: { content: JSON.stringify(data, null, 2) } } })
           });
           if (!response.ok) throw new Error(`Gist 写入失败（${response.status}）`);
-          return;
+          return normalizeState(data);
         }
+        return normalizeState(data);
       }
 
-      async function syncNow({silent=false} = {}) {
-        if (syncBusy) return;
+      async function syncNow({silent=false, intent='manual'} = {}) {
+        if (syncBusy) return false;
         if (!isSyncConfigured()) {
           setSyncStatus('', config.syncMode === 'none' ? '仅本机保存' : '同步尚未配置完整');
           if (!silent) showToast(config.syncMode === 'none' ? '请先在设置中开启云同步' : '请补全同步信息');
-          return;
+          return false;
         }
+        if (navigator.onLine === false) {
+          setSyncStatus('error', '当前离线，记录已保存在本机');
+          scheduleNextPoll();
+          return false;
+        }
+
         syncBusy = true;
+        lastSyncStartedAt = Date.now();
         setSyncStatus('syncing', '正在同步…');
         try {
           const remote = await fetchRemote();
-          const merged = mergeStates(state, remote);
+          const localBefore = normalizeState(state);
+          const merged = remote ? mergeStates(localBefore, remote) : localBefore;
+          const localChangedByRemote = !sameStateData(localBefore, merged);
+          const remoteNeedsLocal = !remote || !sameStateData(remote, merged);
+          const shouldPush = Boolean(config.pendingUpload || (intent !== 'poll' && remoteNeedsLocal));
+
           state = merged;
-          localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-          await pushRemote(state);
+          if (localChangedByRemote) {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            renderAll();
+          }
+
+          if (shouldPush) {
+            state = await pushRemote(state);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+            config.pendingUpload = false;
+            saveConfig();
+            renderAll();
+          }
+
+          syncFailureCount = 0;
           setSyncStatus('synced', `已同步 · ${new Date().toLocaleTimeString('zh-CN',{hour:'2-digit',minute:'2-digit',hour12:false})}`);
-          renderAll();
-          if (!silent) showToast('本机与云端记录已合并');
+          if (!silent) showToast(shouldPush ? '本机与云端记录已合并' : '已获取最新记录');
+          return true;
         } catch (error) {
           console.error(error);
+          syncFailureCount += 1;
+          clearPollTimer();
           setSyncStatus('error', '同步失败，记录仍保存在本机');
           if (!silent) showToast(error.message || '同步失败');
-        } finally { syncBusy = false; }
+          return false;
+        } finally {
+          syncBusy = false;
+          scheduleNextPoll();
+        }
       }
 
       function activeMeds() { return state.meds.filter(m => !m.deleted); }
@@ -1094,7 +1201,8 @@
         $('settingsDialog').close();
         persist({sync:false});
         showToast('设置已保存');
-        if (isSyncConfigured()) syncNow({silent:true});
+        if (!config.autoSync) clearPollTimer();
+        if (isSyncConfigured()) syncNow({silent:true, intent:'manual'});
       }
 
       function exportData() {
@@ -1154,7 +1262,31 @@
         $('exportButton').addEventListener('click', exportData);
         $('importButton').addEventListener('click', () => $('importFile').click());
         $('importFile').addEventListener('change', e => { if (e.target.files[0]) importData(e.target.files[0]); e.target.value=''; });
-        $('syncNowButton').addEventListener('click', () => syncNow());
+        $('syncNowButton').addEventListener('click', () => {
+          markActivity();
+          syncNow({intent:'manual'});
+        });
+        document.addEventListener('pointerdown', markActivity, {passive:true});
+        document.addEventListener('keydown', markActivity);
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            clearPollTimer();
+            return;
+          }
+          lastActivityAt = Date.now();
+          requestImmediateSync();
+        });
+        window.addEventListener('focus', requestImmediateSync);
+        window.addEventListener('pageshow', requestImmediateSync);
+        window.addEventListener('online', () => {
+          syncFailureCount = 0;
+          lastActivityAt = Date.now();
+          requestImmediateSync();
+        });
+        window.addEventListener('offline', () => {
+          clearPollTimer();
+          setSyncStatus('error', '当前离线，记录已保存在本机');
+        });
         document.querySelectorAll('[data-close]').forEach(b => b.addEventListener('click', () => $(b.dataset.close).close()));
         document.querySelectorAll('.nav-button').forEach(b => b.addEventListener('click', () => goPage(b.dataset.page)));
         $('medicationArea').addEventListener('click', e => {
@@ -1193,7 +1325,7 @@
         $('lockScreen').classList.add('hidden');
         $('app').classList.remove('hidden');
         renderAll();
-        if (isSyncConfigured()) syncNow({silent:true});
+        if (isSyncConfigured()) syncNow({silent:true, intent:'poll'});
       }
 
       async function init() {
@@ -1204,9 +1336,9 @@
           $('lockScreen').classList.add('hidden');
           $('app').classList.remove('hidden');
           renderAll();
-          if (isSyncConfigured()) syncNow({silent:true});
+          if (isSyncConfigured()) syncNow({silent:true, intent:'poll'});
         }
-        if (config.autoSync) setInterval(() => { if (isSyncConfigured() && !document.hidden) syncNow({silent:true}); }, 30000);
+        if (config.autoSync && isSyncConfigured()) scheduleNextPoll();
       }
 
       window.careApp = { openMedDialog, syncNow };
