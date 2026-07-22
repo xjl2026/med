@@ -94,10 +94,28 @@ const DEFAULT_CARE=[
 const $=id=>document.getElementById(id),clone=v=>JSON.parse(JSON.stringify(v));
 let serverOffsetMs=0,lastServerDate='';
 const serverNow=()=>new Date(Date.now()+serverOffsetMs),now=()=>serverNow().toISOString();
-function syncServerClock(data){if(!data?.serverNow)return;const t=Date.parse(data.serverNow);if(Number.isFinite(t))serverOffsetMs=t-Date.now();if(data.serverDate)lastServerDate=String(data.serverDate);setTimeout(()=>{if(typeof checkDayRollover==='function')checkDayRollover()},0)}
+const pad=n=>String(n).padStart(2,'0');
+function shanghaiDateKey(value=new Date()){
+  try{
+    const parts=new Intl.DateTimeFormat('en-US',{timeZone:'Asia/Shanghai',year:'numeric',month:'2-digit',day:'2-digit'}).formatToParts(value);
+    const map=Object.fromEntries(parts.map(part=>[part.type,part.value]));
+    if(map.year&&map.month&&map.day)return`${map.year}-${map.month}-${map.day}`;
+  }catch{}
+  const shifted=new Date(value.getTime()+8*60*60*1000);
+  return shifted.toISOString().slice(0,10)
+}
+function validDateKey(value){return/^\d{4}-\d{2}-\d{2}$/.test(String(value||''))}
+function syncServerClock(data){
+  if(!data?.serverNow)return;
+  const t=Date.parse(data.serverNow);
+  if(Number.isFinite(t))serverOffsetMs=t-Date.now();
+  const supplied=String(data.serverDate||'');
+  lastServerDate=validDateKey(supplied)?supplied:(Number.isFinite(t)?shanghaiDateKey(new Date(t)):shanghaiDateKey(serverNow()));
+  setTimeout(()=>{if(typeof checkDayRollover==='function')checkDayRollover()},0)
+}
 const uuid=prefix=>(crypto.randomUUID?`${prefix}-${crypto.randomUUID()}`:`${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`);
-const pad=n=>String(n).padStart(2,'0'),dateKey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,todayKey=()=>lastServerDate||dateKey(serverNow());
-const parseDate=s=>{const [y,m,d]=String(s).split('-').map(Number);return new Date(y,m-1,d)};
+const dateKey=d=>`${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`,todayKey=()=>validDateKey(lastServerDate)?lastServerDate:shanghaiDateKey(serverNow());
+const parseDate=s=>{if(!validDateKey(s))return new Date(`${todayKey()}T12:00:00+08:00`);const[y,m,d]=String(s).split('-').map(Number);return new Date(y,m-1,d)};
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
 function base(){return{version:5,revision:0,profile:{patientName:'老人用药记录',room:'住院陪护',clinicalSummary:'',alert:'',careReminders:DEFAULT_CARE,updatedAt:now()},meds:[],days:{},operators:[],auditLogs:[],appliedOps:[],updatedAt:now()}}
 function load(k,d){try{const value=localStorage.getItem(k);return value?JSON.parse(value):d}catch{return d}}function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
