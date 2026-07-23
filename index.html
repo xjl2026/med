@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#e60012">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="app-version" content="2026.07.23.03">
+<meta name="app-version" content="2026.07.23.04">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -171,7 +171,7 @@ function planItems(date=selected){const items=[];state.meds.forEach(med=>{(med.r
 function logFor(item,date=selected){return state.days[date]?.medicationLogs?.[item.key]||null}
 function isHandled(log){return log&&['done','missed','cancelled'].includes(log.status)}
 function progress(date=selected){const list=planItems(date),logs=state.days[date]?.medicationLogs||{};const values=list.map(i=>logs[i.key]).filter(Boolean);return{total:list.length,done:values.filter(x=>x.status==='done').length,withheld:values.filter(x=>x.status==='withheld').length,missed:values.filter(x=>x.status==='missed').length,cancelled:values.filter(x=>x.status==='cancelled').length,handled:values.filter(isHandled).length,pending:list.filter(i=>!isHandled(logs[i.key])).length}}
-function currentOrNext(date=selected){const list=planItems(date),logs=state.days[date]?.medicationLogs||{},pending=list.filter(i=>!isHandled(logs[i.key]));if(!pending.length)return null;if(date!==todayKey())return pending[0];const postponed=pending.find(i=>logs[i.key]?.status==='withheld');if(postponed)return postponed;const current=shanghaiClockMinutes();return pending.find(i=>clockParts(i.schedule.time).total>=current)||pending[0]}
+function currentOrNext(date=selected){const list=planItems(date),logs=state.days[date]?.medicationLogs||{},pending=list.filter(i=>!isHandled(logs[i.key]));return pending[0]||null}
 function timePeriod(t){const h=clockParts(t).hour;return h<10?'早上':h<14?'中午':h<20?'晚上':'睡前'}
 function friendly(date){if(date===todayKey())return'今天';const d=parseDate(date);return`${d.getMonth()+1}月${d.getDate()}日`}
 function plannedAt(date,schedule){return dateMid(date,schedule.time||'00:00')}
