@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#e60012">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="app-version" content="2026.07.23.11">
+<meta name="app-version" content="2026.07.23.12">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -83,7 +83,7 @@ dialog{border:0;border-radius:24px;padding:0;width:min(calc(100% - 24px),520px);
 <dialog id="statusDialog"><div class="dialog-body"><div class="dialog-head"><h3 id="statusTitle">记录本次用药</h3><button class="close" data-close="statusDialog">×</button></div><p id="statusHelp" class="status-help">请选择本次用药结果。选择“稍后服用”后，本项仍会保留为待处理。</p><div class="status-grid"><label class="status-option"><input name="status" type="radio" value="done"><span><b>已服用</b><small>已按本次安排服用</small></span></label><label class="status-option"><input name="status" type="radio" value="withheld"><span><b>稍后服用</b><small>现在暂缓，稍后仍需服用</small></span></label><label class="status-option"><input name="status" type="radio" value="missed"><span><b>本次未服</b><small>本次没有服用，也不再补服</small></span></label><label class="status-option"><input name="status" type="radio" value="cancelled"><span><b>医生要求停服</b><small>本次按医生要求不服用</small></span></label></div><div class="field" style="margin-top:14px"><label>实际时间</label><input id="statusTime" type="time"><div class="field-hint">已服用请填写实际服用时间；其他情况填写发生或记录时间。</div></div><div class="reason-chips"><button class="reason-chip" type="button">医生要求</button><button class="reason-chip" type="button">暂时不适</button><button class="reason-chip" type="button">外出检查</button><button class="reason-chip" type="button">患者拒绝</button><button class="reason-chip" type="button">忘记服用</button></div><div class="field"><label>补充说明</label><input id="statusReason" placeholder="可不填"></div><div class="btnrow"><button id="saveStatus" class="primary">保存记录</button><button id="revertStatus" class="secondary">撤销记录</button></div></div></dialog>
 <dialog id="vitalDialog"><form id="vitalForm" class="dialog-body"><div class="dialog-head"><h3>记录身体指标</h3><button class="close" type="button" data-close="vitalDialog">×</button></div><div class="field"><label>时间</label><input id="vitalTime" type="time"></div><div class="quick-grid"><div class="field"><label>收缩压</label><input id="sys" inputmode="decimal"></div><div class="field"><label>舒张压</label><input id="dia" inputmode="decimal"></div><div class="field"><label>心率</label><input id="heart" inputmode="decimal"></div><div class="field"><label>体温 ℃</label><input id="temp" inputmode="decimal"></div><div class="field"><label>血氧 %</label><input id="spo2" inputmode="decimal"></div><div class="field"><label>体重 kg</label><input id="weight" inputmode="decimal"></div></div><button class="primary wide" type="submit">保存记录</button></form></dialog>
 <dialog id="medTextDialog"><form id="medTextForm" class="dialog-body"><div class="dialog-head"><h3 id="medTextTitle">药品资料</h3><button class="close" type="button" data-close="medTextDialog">×</button></div><input id="medTextId" type="hidden"><div class="field"><label>药名</label><input id="medName" required></div><div class="field"><label>用途</label><input id="medPurpose"></div><div class="field"><label>通用说明</label><textarea id="medGeneralNote"></textarea></div><label style="display:flex;gap:8px;align-items:center;margin-bottom:12px"><input id="medConfirm" type="checkbox"> 剂量待核对</label><label style="display:flex;gap:8px;align-items:center;margin-bottom:16px"><input id="medTestOnly" type="checkbox"> 测试药（允许彻底删除）</label><button class="primary wide" type="submit">保存资料</button></form></dialog>
-<dialog id="regimenDialog"><form id="regimenForm" class="dialog-body"><div class="dialog-head"><h3 id="regimenTitle">调整用药方案</h3><button class="close" type="button" data-close="regimenDialog">×</button></div><input id="regimenMedId" type="hidden"><div id="regimenMedName" style="font-weight:900;margin-bottom:12px"></div><div class="field"><label>新剂量</label><input id="regimenDose" required placeholder="例如：100毫克，每次1片"></div><div class="field"><label>每天用药安排</label><div id="regimenScheduleRows" class="schedule-editor"></div><button id="addScheduleRow" class="schedule-add" type="button">＋ 添加一次用药</button><small class="field-help">一行代表每天的一次用药。只需选择服用时点，系统会自动确定首页的早上／中午／晚上／睡前分组和先后顺序。</small></div><div class="field"><label>服用提醒</label><textarea id="regimenInstructions"></textarea></div><div class="field"><label>生效时间</label><input id="regimenEffective" type="datetime-local" required></div><div class="field"><label>调整原因</label><input id="regimenReason" placeholder="例如：医生调整剂量"></div><button class="primary wide" type="submit">保存并生效</button></form></dialog>
+<dialog id="regimenDialog"><form id="regimenForm" class="dialog-body"><div class="dialog-head"><h3 id="regimenTitle">调整用药方案</h3><button class="close" type="button" data-close="regimenDialog">×</button></div><input id="regimenMedId" type="hidden"><div id="regimenMedName" style="font-weight:900;margin-bottom:12px"></div><div class="field"><label>新剂量</label><input id="regimenDose" required placeholder="例如：100毫克，每次1片"></div><div class="field"><label>每天用药安排</label><div id="regimenScheduleRows" class="schedule-editor"></div><button id="addScheduleRow" class="schedule-add" type="button">＋ 添加一次用药</button><small class="field-help">系统会自动带入当前方案。每一行代表每天的一次用药；只需选择服用时点，首页分组和先后顺序会自动确定。</small></div><div class="field"><label>服用提醒</label><textarea id="regimenInstructions"></textarea></div><div class="field"><label>生效时间</label><input id="regimenEffective" type="datetime-local" required></div><div class="field"><label>调整原因</label><input id="regimenReason" placeholder="例如：医生调整剂量"></div><button class="primary wide" type="submit">保存并生效</button></form></dialog>
 <dialog id="archiveDialog"><form id="archiveForm" class="dialog-body"><div class="dialog-head"><h3>停用药品</h3><button class="close" type="button" data-close="archiveDialog">×</button></div><input id="archiveMedId" type="hidden"><div id="archiveMedName" style="font-weight:900;margin-bottom:12px"></div><div class="field"><label>停用时间</label><input id="archiveEffective" type="datetime-local" required></div><div class="field"><label>原因</label><input id="archiveReason" value="按医嘱停用"></div><button class="danger wide" type="submit">确认停用</button></form></dialog>
 <dialog id="photoDialog" class="photo-dialog"><div class="photo-body"><div class="dialog-head"><h3 id="photoTitle">药品照片</h3><button class="close" type="button" data-close="photoDialog">×</button></div><img id="photoLarge" alt="药品包装照片"><div class="photo-caption"><b id="photoName"></b><span id="photoHint"></span></div></div></dialog>
 <div id="toast" class="toast"><span id="toastText"></span><button id="toastAction" class="hidden"></button></div>
@@ -165,13 +165,88 @@ const SCHEDULE_PRESETS=[
 {id:'bedtime',period:'睡前',time:'21:30',label:'睡前'}
 ];
 const SCHEDULE_PERIODS=['早上','中午','晚上','睡前'];
-function schedulePresetFor(s={}){const label=String(s.label||'').trim(),time=String(s.time||'').trim();if(label&&time)return SCHEDULE_PRESETS.find(p=>p.label===label&&p.time===time)||null;if(label)return SCHEDULE_PRESETS.find(p=>p.label===label)||null;if(time)return SCHEDULE_PRESETS.find(p=>p.time===time)||null;return null}
+const KNOWN_SCHEDULE_DEFAULTS={
+'valsartan-amlodipine':['wake'],
+'aspirin':['breakfast-before-30'],
+'leritrelvir':['breakfast-with','lunch-with','dinner-with'],
+'bifidobacterium-quadruple':['breakfast-after','lunch-after','dinner-after'],
+'glutathione':['breakfast-after','lunch-after','dinner-after'],
+'rosuvastatin':['bedtime']
+};
+function scheduleFromPreset(id,existingId=''){
+const p=SCHEDULE_PRESETS.find(x=>x.id===id);
+return p?{id:existingId||uuid('schedule'),time:p.time,label:p.label,period:p.period,kind:'fixed',enabled:true}:null
+}
+function knownDefaultSchedules(med,source=[]){
+const key=guideFor(med?.name)?.key,ids=KNOWN_SCHEDULE_DEFAULTS[key]||[];
+return ids.map((id,index)=>scheduleFromPreset(id,source[index]?.id)).filter(Boolean)
+}
+function currentRegimenForEditing(med){
+if(!med)return null;
+const current=regimenAt(med,now());
+if(current&&(current.schedules||[]).some(s=>s.enabled!==false))return current;
+const nonempty=(med.regimens||[]).slice().sort((a,b)=>Date.parse(b.effectiveFrom)-Date.parse(a.effectiveFrom)).find(r=>(r.schedules||[]).some(s=>s.enabled!==false));
+return current||nonempty||latestRegimen(med)
+}
+function editorSchedulesFor(med,regimen){
+const source=(regimen?.schedules||[]).filter(s=>s.enabled!==false);
+const mapped=source.map(s=>{const p=schedulePresetFor(s);return p?{...s,time:p.time,label:p.label,period:p.period,kind:'fixed',enabled:true}:null}).filter(Boolean);
+if(source.length&&mapped.length===source.length)return mapped;
+const defaults=knownDefaultSchedules(med,source);
+if(defaults.length)return defaults;
+return source
+}
+
+function schedulePresetFor(s={}){
+const label=String(s.label||'').trim(),time=String(s.time||'').trim(),compact=label.replace(/\s+/g,'').replace(/[，,。；;、]/g,'');
+let preset=null;
+if(label&&time)preset=SCHEDULE_PRESETS.find(p=>p.label===label&&p.time===time)||null;
+if(!preset&&label)preset=SCHEDULE_PRESETS.find(p=>p.label===label)||null;
+if(preset)return preset;
+const aliases=[
+[/起床后|晨起后|早起后|起床即服/,'wake'],
+[/早餐前.*30|早饭前.*30|饭前.*30分钟/,'breakfast-before-30'],
+[/早餐前|早饭前/,'breakfast-before'],
+[/早餐随餐|早饭随餐|早餐中|早饭中/,'breakfast-with'],
+[/早餐后|早饭后/,'breakfast-after'],
+[/早晨固定|早上固定|晨间固定/,'morning-fixed'],
+[/午餐前.*30|午饭前.*30/,'lunch-before-30'],
+[/午餐前|午饭前/,'lunch-before'],
+[/午餐随餐|午饭随餐|午餐中|午饭中/,'lunch-with'],
+[/午餐后|午饭后/,'lunch-after'],
+[/晚餐前.*30|晚饭前.*30/,'dinner-before-30'],
+[/晚餐前|晚饭前/,'dinner-before'],
+[/晚餐随餐|晚饭随餐|晚餐中|晚饭中/,'dinner-with'],
+[/晚餐后|晚饭后/,'dinner-after'],
+[/睡前|临睡前|入睡前/,'bedtime']
+];
+if(compact){const match=aliases.find(([pattern])=>pattern.test(compact));if(match)return SCHEDULE_PRESETS.find(p=>p.id===match[1])||null}
+if(time)return SCHEDULE_PRESETS.find(p=>p.time===time)||null;
+return null
+}
 function schedulePeriodFor(s={}){if(SCHEDULE_PERIODS.includes(s.period))return s.period;const preset=schedulePresetFor(s);if(preset)return preset.period;const h=clockParts(s.time||'00:00').hour;return h<10?'早上':h<14?'中午':h<20?'晚上':'睡前'}
 function normSchedule(s,i=0){s=s&&typeof s==='object'?s:{};return{id:s.id||uuid(`schedule-${i}`),time:String(s.time||''),label:String(s.label||''),period:schedulePeriodFor(s),kind:s.kind||'fixed',enabled:s.enabled!==false}}
 function normRegimen(r,f={}){r=r&&typeof r==='object'?r:{};return{id:r.id||uuid('regimen'),dose:String(r.dose??f.dose??''),schedules:Array.isArray(r.schedules)?r.schedules.map(normSchedule):Array.isArray(f.schedules)?f.schedules.map(normSchedule):[],instructions:String(r.instructions??f.note??''),changeReason:String(r.changeReason||''),effectiveFrom:String(r.effectiveFrom||f.effectiveFrom||f.createdAt||'2026-01-01T00:00:00+08:00'),effectiveTo:r.effectiveTo?String(r.effectiveTo):null,createdBy:String(r.createdBy||''),createdByDeviceId:String(r.createdByDeviceId||''),createdAt:String(r.createdAt||f.createdAt||now()),updatedAt:String(r.updatedAt||f.updatedAt||now())}}
 function normMed(m){m=m&&typeof m==='object'?m:{};const stopped=m.active===false||m.deleted===true;let regimens=Array.isArray(m.regimens)&&m.regimens.length?m.regimens.map(r=>normRegimen(r,m)):[normRegimen({dose:m.dose||'',schedules:m.schedules||[],instructions:m.note||'',effectiveFrom:m.createdAt||'2026-01-01T00:00:00+08:00',effectiveTo:stopped?(m.stoppedAt?`${m.stoppedAt}T00:00:00+08:00`:m.updatedAt||now()):null,changeReason:m.stopReason||''},m)];return{id:m.id||uuid('med'),name:String(m.name||''),purpose:String(m.purpose||''),generalNote:String(m.generalNote??m.note??''),needsConfirmation:!!m.needsConfirmation,testOnly:!!m.testOnly,archived:!!(m.archived||stopped),archivedAt:m.archivedAt||m.stoppedAt||(stopped?m.updatedAt||now():null),archiveReason:String(m.archiveReason||m.stopReason||''),regimens:regimens.sort((a,b)=>Date.parse(a.effectiveFrom)-Date.parse(b.effectiveFrom)),createdAt:String(m.createdAt||now()),updatedAt:String(m.updatedAt||now())}}
 function normOperator(o){if(typeof o==='string')return{id:opIdForName(o),name:o,active:true,createdAt:now(),updatedAt:now()};o=o&&typeof o==='object'?o:{};const name=String(o.name||'').trim();return{id:o.id||opIdForName(name||uuid('operator')),name,active:o.active!==false,createdAt:String(o.createdAt||now()),updatedAt:String(o.updatedAt||now())}}
 function normNote(n,date,i=0){n=n&&typeof n==='object'?n:{};const fallbackTime=n.updatedAt?new Date(n.updatedAt):null;return{id:String(n.id||`legacy-note-${date}-${i}`),time:String(n.time||(fallbackTime&&!Number.isNaN(fallbackTime.getTime())?`${pad(fallbackTime.getHours())}:${pad(fallbackTime.getMinutes())}`:'')),text:String(n.text||''),deviceId:String(n.deviceId||''),createdAt:String(n.createdAt||n.updatedAt||now()),updatedAt:String(n.updatedAt||n.createdAt||now())}}
+
+
+function normalizeRecognizedSchedules(meds){
+(meds||[]).forEach(med=>{
+  (med.regimens||[]).forEach(regimen=>{
+    regimen.schedules=(regimen.schedules||[]).map(schedule=>{
+      const p=schedulePresetFor(schedule);
+      return p?{...schedule,time:p.time,label:p.label,period:p.period,kind:'fixed',enabled:schedule.enabled!==false}:schedule
+    })
+  });
+  const latest=(med.regimens||[]).slice().sort((a,b)=>Date.parse(b.effectiveFrom)-Date.parse(a.effectiveFrom))[0];
+  if(latest&&!(latest.schedules||[]).some(s=>s.enabled!==false)){
+    const defaults=knownDefaultSchedules(med,[]);
+    if(defaults.length)latest.schedules=defaults
+  }
+})
+}
 
 function normalizeKnownLegacyRegimens(meds){
   const target=[
@@ -205,7 +280,7 @@ function normalizeKnownLegacyRegimens(meds){
   });
 }
 
-function norm(x){const b=base();if(x&&x.state&&typeof x.state==='object')x=x.state;if(!x||typeof x!=='object'||Array.isArray(x))return b;const meds=Array.isArray(x.meds)?x.meds.filter(m=>!(m?.deleted&&m?.testOnly)).map(normMed):[];normalizeKnownLegacyRegimens(meds);const medMap=new Map(meds.map(m=>[m.id,m]));const days={};Object.entries(x.days&&typeof x.days==='object'?x.days:{}).forEach(([date,d])=>{d=d&&typeof d==='object'?d:{};const logs={};Object.entries(d.medicationLogs&&typeof d.medicationLogs==='object'?d.medicationLogs:{}).forEach(([key,l])=>{l=l&&typeof l==='object'?l:{};const [medId='',scheduleId='']=key.split('::'),med=medMap.get(medId),reg=med?.regimens?.find(r=>r.schedules.some(s=>s.id===scheduleId))||med?.regimens?.at(-1),sch=reg?.schedules?.find(s=>s.id===scheduleId);logs[key]={id:l.id||uuid('administration'),status:l.status==='skipped'?'withheld':l.status||'done',reason:String(l.reason||''),operatorId:String(l.operatorId||''),operatorName:String(l.operatorName||l.operator||''),deviceId:String(l.deviceId||''),plannedAt:String(l.plannedAt||''),actionAt:String(l.actionAt||l.updatedAt||now()),updatedAt:String(l.updatedAt||now()),medicationId:l.medicationId||medId,regimenId:l.regimenId||reg?.id||'',scheduleId:l.scheduleId||scheduleId,snapshot:l.snapshot||{medicationName:med?.name||'',purpose:med?.purpose||'',dose:reg?.dose||'',instructions:reg?.instructions||'',scheduleTime:sch?.time||'',scheduleLabel:sch?.label||''}}});let notes=Array.isArray(d.notes)?d.notes.map((n,i)=>normNote(n,date,i)).filter(n=>n.text.trim()):[];if(!notes.length&&d.note&&typeof d.note==='object'&&String(d.note.text||'').trim())notes=[normNote({...d.note,id:`legacy-note-${date}`},date,0)];notes.sort((a,b)=>Date.parse(a.createdAt)-Date.parse(b.createdAt)||a.time.localeCompare(b.time));const latest=notes.slice().sort((a,b)=>Date.parse(b.updatedAt)-Date.parse(a.updatedAt))[0];days[date]={medicationLogs:logs,vitals:Array.isArray(d.vitals)?d.vitals:[],notes,note:latest?{text:latest.text,deviceId:latest.deviceId,updatedAt:latest.updatedAt}:{text:'',operatorId:'',operatorName:'',deviceId:'',updatedAt:''}}});return{version:6,revision:Number(x.revision||0),profile:{...b.profile,...(x.profile||{}),careReminders:Array.isArray(x.profile?.careReminders)&&x.profile.careReminders.length?x.profile.careReminders:DEFAULT_CARE},meds,days,operators:Array.isArray(x.operators)?x.operators.map(normOperator).filter(o=>o.name):[],auditLogs:Array.isArray(x.auditLogs)?x.auditLogs:[],appliedOps:Array.isArray(x.appliedOps)?x.appliedOps:[],updatedAt:String(x.updatedAt||now())}}
+function norm(x){const b=base();if(x&&x.state&&typeof x.state==='object')x=x.state;if(!x||typeof x!=='object'||Array.isArray(x))return b;const meds=Array.isArray(x.meds)?x.meds.filter(m=>!(m?.deleted&&m?.testOnly)).map(normMed):[];normalizeKnownLegacyRegimens(meds);normalizeRecognizedSchedules(meds);const medMap=new Map(meds.map(m=>[m.id,m]));const days={};Object.entries(x.days&&typeof x.days==='object'?x.days:{}).forEach(([date,d])=>{d=d&&typeof d==='object'?d:{};const logs={};Object.entries(d.medicationLogs&&typeof d.medicationLogs==='object'?d.medicationLogs:{}).forEach(([key,l])=>{l=l&&typeof l==='object'?l:{};const [medId='',scheduleId='']=key.split('::'),med=medMap.get(medId),reg=med?.regimens?.find(r=>r.schedules.some(s=>s.id===scheduleId))||med?.regimens?.at(-1),sch=reg?.schedules?.find(s=>s.id===scheduleId);logs[key]={id:l.id||uuid('administration'),status:l.status==='skipped'?'withheld':l.status||'done',reason:String(l.reason||''),operatorId:String(l.operatorId||''),operatorName:String(l.operatorName||l.operator||''),deviceId:String(l.deviceId||''),plannedAt:String(l.plannedAt||''),actionAt:String(l.actionAt||l.updatedAt||now()),updatedAt:String(l.updatedAt||now()),medicationId:l.medicationId||medId,regimenId:l.regimenId||reg?.id||'',scheduleId:l.scheduleId||scheduleId,snapshot:l.snapshot||{medicationName:med?.name||'',purpose:med?.purpose||'',dose:reg?.dose||'',instructions:reg?.instructions||'',scheduleTime:sch?.time||'',scheduleLabel:sch?.label||''}}});let notes=Array.isArray(d.notes)?d.notes.map((n,i)=>normNote(n,date,i)).filter(n=>n.text.trim()):[];if(!notes.length&&d.note&&typeof d.note==='object'&&String(d.note.text||'').trim())notes=[normNote({...d.note,id:`legacy-note-${date}`},date,0)];notes.sort((a,b)=>Date.parse(a.createdAt)-Date.parse(b.createdAt)||a.time.localeCompare(b.time));const latest=notes.slice().sort((a,b)=>Date.parse(b.updatedAt)-Date.parse(a.updatedAt))[0];days[date]={medicationLogs:logs,vitals:Array.isArray(d.vitals)?d.vitals:[],notes,note:latest?{text:latest.text,deviceId:latest.deviceId,updatedAt:latest.updatedAt}:{text:'',operatorId:'',operatorName:'',deviceId:'',updatedAt:''}}});return{version:6,revision:Number(x.revision||0),profile:{...b.profile,...(x.profile||{}),careReminders:Array.isArray(x.profile?.careReminders)&&x.profile.careReminders.length?x.profile.careReminders:DEFAULT_CARE},meds,days,operators:Array.isArray(x.operators)?x.operators.map(normOperator).filter(o=>o.name):[],auditLogs:Array.isArray(x.auditLogs)?x.auditLogs:[],appliedOps:Array.isArray(x.appliedOps)?x.appliedOps:[],updatedAt:String(x.updatedAt||now())}}
 function migrateLocal(){const current=load(STORE,null),old=load(OLD_STORE,null);if(!current&&old){save(STORE,norm(old));return}if(current&&(!Array.isArray(current.meds)||current.meds.length===0)&&Array.isArray(old?.meds)&&old.meds.length){save(STORE,norm(old))}}
 migrateLocal();
 let state=norm(load(STORE,base())),cfg=load(CFG,{lastActivity:Date.now()}),queue=load(QUEUE,[]),selected=todayKey(),page='today',busy=false,pollTimer=null,failures=0,statusTarget=null,undoPayload=null,lastToday=selected,noteEditorDate=selected,editingNoteId='';
@@ -309,10 +384,10 @@ select.innerHTML='';
 const blank=document.createElement('option');blank.value='';blank.textContent='请选择服用时点';select.appendChild(blank);
 SCHEDULE_PERIODS.forEach(period=>{const group=document.createElement('optgroup');group.label=period;SCHEDULE_PRESETS.filter(p=>p.period===period).forEach(p=>{const option=document.createElement('option');option.value=p.id;option.textContent=`${period}｜${p.label}`;option.dataset.time=p.time;option.dataset.label=p.label;option.dataset.period=p.period;group.appendChild(option)});select.appendChild(group)});
 const preset=schedulePresetFor(schedule);
-if(preset){select.value=preset.id}else if(schedule&&schedule.time){blank.textContent=`旧方案未匹配，请重新选择（原：${schedule.label||schedule.time}）`;select.value=''}
+if(preset){select.value=preset.id}else if(schedule&&schedule.time){blank.textContent=`请选择服用时点（原记录：${schedule.label||schedule.time}）`;select.value=''}
 }
 function updateScheduleRowHint(row){const option=row.querySelector('select')?.selectedOptions?.[0],hint=row.querySelector('.schedule-result');if(!hint)return;if(!option||!option.value){hint.textContent='尚未选择';return}hint.textContent=`首页分组：${option.dataset.period} · 系统按“${option.dataset.label}”自动排序`}
-function addScheduleEditorRow(schedule={}){const root=$('regimenScheduleRows'),row=document.createElement('div');row.className='schedule-row';row.dataset.scheduleId=schedule.id||'';const select=document.createElement('select');select.className='schedule-preset';select.required=true;scheduleOptionGroups(select,schedule);const remove=document.createElement('button');remove.type='button';remove.className='schedule-remove';remove.textContent='删除';const hint=document.createElement('div');hint.className='schedule-result';row.append(select,remove,hint);root.appendChild(row);select.addEventListener('change',()=>updateScheduleRowHint(row));remove.addEventListener('click',()=>{if(root.children.length>1)row.remove();else{select.value='';updateScheduleRowHint(row)}});updateScheduleRowHint(row);return row}
+function addScheduleEditorRow(schedule={}){const root=$('regimenScheduleRows'),row=document.createElement('div');row.className='schedule-row';row.dataset.scheduleId=schedule.id||'';const select=document.createElement('select');select.className='schedule-preset';select.required=true;scheduleOptionGroups(select,schedule);const remove=document.createElement('button');remove.type='button';remove.className='schedule-remove';remove.textContent='移除本次';const hint=document.createElement('div');hint.className='schedule-result';row.append(select,remove,hint);root.appendChild(row);select.addEventListener('change',()=>updateScheduleRowHint(row));remove.addEventListener('click',()=>{if(root.children.length>1)row.remove();else{select.value='';updateScheduleRowHint(row)}});updateScheduleRowHint(row);return row}
 function renderScheduleEditor(schedules=[]){const root=$('regimenScheduleRows');root.innerHTML='';(schedules.length?schedules:[{}]).forEach(addScheduleEditorRow)}
 function collectSchedules(){const rows=[...$('regimenScheduleRows').querySelectorAll('.schedule-row')];if(!rows.length)throw new Error('请至少添加一次用药');const seen=new Set();return rows.map((row,i)=>{const select=row.querySelector('select'),option=select?.selectedOptions?.[0];if(!option||!option.value)throw new Error(`第 ${i+1} 次用药还没有选择服用时点`);const time=option.dataset.time,label=option.dataset.label,period=option.dataset.period,key=`${time}|${label}`;if(seen.has(key))throw new Error(`“${label}”重复，请删除多余的一项`);seen.add(key);return{id:row.dataset.scheduleId||uuid('schedule'),time,label,period,kind:'fixed',enabled:true}})}
 function addConfirmedNewMedicines(){
@@ -332,7 +407,7 @@ added++;
 return{added,updated};
 }
 function openMedText(id=''){const m=state.meds.find(x=>x.id===id),view=m?presentation(m):null;$('medTextTitle').textContent=m?'修改药品资料':'添加药品';$('medTextId').value=m?.id||'';$('medName').value=m?.name||'';$('medPurpose').value=view?.purpose||m?.purpose||'';$('medGeneralNote').value=m?.generalNote||'';$('medConfirm').checked=!!m?.needsConfirmation&&!view?.confirmed;$('medTestOnly').checked=!!m?.testOnly;$('medTextDialog').showModal()}
-function openRegimen(id){const m=state.meds.find(x=>x.id===id),r=m?latestRegimen(m):null,view=m?presentation(m,r,r?.schedules?.[0]):null;$('regimenMedId').value=m?.id||id||uuid('med');$('regimenMedName').textContent=m?.name||'新药品';$('regimenDose').value=view?.dose||r?.dose||'';renderScheduleEditor(r?.schedules||[]);$('regimenInstructions').value=view?.instruction||r?.instructions||'';$('regimenEffective').value=localDateTime();$('regimenReason').value='';$('regimenDialog').showModal()}
+function openRegimen(id){const m=state.meds.find(x=>x.id===id),r=m?currentRegimenForEditing(m):null,schedules=m?editorSchedulesFor(m,r):[],view=m?presentation(m,r,schedules[0]||r?.schedules?.[0]):null;$('regimenMedId').value=m?.id||id||uuid('med');$('regimenMedName').textContent=m?.name||'新药品';$('regimenDose').value=view?.dose||r?.dose||'';renderScheduleEditor(schedules);$('regimenInstructions').value=view?.instruction||r?.instructions||'';$('regimenEffective').value=localDateTime();$('regimenReason').value='';$('regimenDialog').showModal()}
 $('addMed').onclick=()=>openMedText();$('medTextForm').onsubmit=e=>{e.preventDefault();const id=$('medTextId').value||uuid('med'),isNew=!state.meds.some(m=>m.id===id),payload={id,name:$('medName').value.trim(),purpose:$('medPurpose').value.trim(),generalNote:$('medGeneralNote').value.trim(),needsConfirmation:$('medConfirm').checked,testOnly:$('medTestOnly').checked};if(!payload.name)return toast('请填写药名');enqueue(operation('upsertMedicationText',payload));$('medTextDialog').close();toast('资料已保存');if(isNew)setTimeout(()=>openRegimen(id),180)};
 $('addScheduleRow').onclick=()=>addScheduleEditorRow({});$('regimenForm').onsubmit=e=>{e.preventDefault();const medId=$('regimenMedId').value,m=state.meds.find(x=>x.id===medId),effective=new Date($('regimenEffective').value).toISOString();let schedules;try{schedules=collectSchedules()}catch(err){toast(err.message);return}localSnapshot(`调整方案前：${m?.name||'新药品'}`);enqueue(operation('adjustRegimen',{medId,effectiveFrom:effective,changeReason:$('regimenReason').value.trim(),regimen:{id:uuid('regimen'),dose:$('regimenDose').value.trim(),schedules,instructions:$('regimenInstructions').value.trim()}}));$('regimenDialog').close();toast('新方案已生效')};
 $('manageList').onclick=e=>{const text=e.target.closest('[data-edit-text]'),adjust=e.target.closest('[data-adjust]'),archive=e.target.closest('[data-archive]'),restore=e.target.closest('[data-restore]'),purge=e.target.closest('[data-purge]');if(text)return openMedText(text.dataset.editText);if(adjust)return openRegimen(adjust.dataset.adjust);if(archive){const m=state.meds.find(x=>x.id===archive.dataset.archive);$('archiveMedId').value=m.id;$('archiveMedName').textContent=m.name;$('archiveEffective').value=localDateTime();$('archiveReason').value='按医嘱停用';$('archiveDialog').showModal();return}if(restore){const m=state.meds.find(x=>x.id===restore.dataset.restore);if(confirm(`恢复“${m.name}”吗？恢复后仍需新增有效用药方案。`)){enqueue(operation('restoreMedication',{medId:m.id}));setTimeout(()=>openRegimen(m.id),180)}return}if(purge){const m=state.meds.find(x=>x.id===purge.dataset.purge);if(confirm(`彻底删除“${m.name}”吗？此操作只适合测试药或无历史记录的药。`)){localSnapshot(`删除前：${m.name}`);enqueue(operation('purgeMedication',{medId:m.id}))}}};$('archiveForm').onsubmit=e=>{e.preventDefault();const m=state.meds.find(x=>x.id===$('archiveMedId').value);localSnapshot(`停用前：${m?.name||''}`);enqueue(operation('archiveMedication',{medId:$('archiveMedId').value,effectiveAt:new Date($('archiveEffective').value).toISOString(),reason:$('archiveReason').value.trim()}));$('archiveDialog').close();toast('药品已停用')};
