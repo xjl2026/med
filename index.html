@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#e60012">
 <meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="app-version" content="2026.07.23.08">
+<meta name="app-version" content="2026.07.23.09">
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
@@ -165,7 +165,7 @@ const SCHEDULE_PRESETS=[
 {id:'bedtime',period:'睡前',time:'21:30',label:'睡前'}
 ];
 const SCHEDULE_PERIODS=['早上','中午','晚上','睡前'];
-function schedulePresetFor(s={}){const label=String(s.label||'').trim(),time=String(s.time||'').trim();return SCHEDULE_PRESETS.find(p=>p.label===label)||SCHEDULE_PRESETS.find(p=>p.time===time)||null}
+function schedulePresetFor(s={}){const label=String(s.label||'').trim(),time=String(s.time||'').trim();if(label&&time)return SCHEDULE_PRESETS.find(p=>p.label===label&&p.time===time)||null;if(label)return SCHEDULE_PRESETS.find(p=>p.label===label)||null;if(time)return SCHEDULE_PRESETS.find(p=>p.time===time)||null;return null}
 function schedulePeriodFor(s={}){if(SCHEDULE_PERIODS.includes(s.period))return s.period;const preset=schedulePresetFor(s);if(preset)return preset.period;const h=clockParts(s.time||'00:00').hour;return h<10?'早上':h<14?'中午':h<20?'晚上':'睡前'}
 function normSchedule(s,i=0){s=s&&typeof s==='object'?s:{};return{id:s.id||uuid(`schedule-${i}`),time:String(s.time||''),label:String(s.label||''),period:schedulePeriodFor(s),kind:s.kind||'fixed',enabled:s.enabled!==false}}
 function normRegimen(r,f={}){r=r&&typeof r==='object'?r:{};return{id:r.id||uuid('regimen'),dose:String(r.dose??f.dose??''),schedules:Array.isArray(r.schedules)?r.schedules.map(normSchedule):Array.isArray(f.schedules)?f.schedules.map(normSchedule):[],instructions:String(r.instructions??f.note??''),changeReason:String(r.changeReason||''),effectiveFrom:String(r.effectiveFrom||f.effectiveFrom||f.createdAt||'2026-01-01T00:00:00+08:00'),effectiveTo:r.effectiveTo?String(r.effectiveTo):null,createdBy:String(r.createdBy||''),createdByDeviceId:String(r.createdByDeviceId||''),createdAt:String(r.createdAt||f.createdAt||now()),updatedAt:String(r.updatedAt||f.updatedAt||now())}}
@@ -188,9 +188,9 @@ function regimenAt(med,dateTime){const t=Date.parse(dateTime);return(med.regimen
 function clockParts(value){const match=String(value||'').trim().match(/^(\d{1,2}):(\d{2})/);if(!match)return{hour:99,minute:99,total:Number.POSITIVE_INFINITY,text:'23:59'};const hour=Math.min(23,Math.max(0,Number(match[1]))),minute=Math.min(59,Math.max(0,Number(match[2])));return{hour,minute,total:hour*60+minute,text:`${pad(hour)}:${pad(minute)}`}}
 function shanghaiClockMinutes(value=serverNow()){try{const parts=new Intl.DateTimeFormat('en-GB',{timeZone:'Asia/Shanghai',hour:'2-digit',minute:'2-digit',hour12:false,hourCycle:'h23'}).formatToParts(value),map=Object.fromEntries(parts.map(part=>[part.type,part.value])),hour=Number(map.hour),minute=Number(map.minute);if(Number.isFinite(hour)&&Number.isFinite(minute))return(hour%24)*60+minute}catch{}const shifted=new Date(value.getTime()+8*60*60*1000);return shifted.getUTCHours()*60+shifted.getUTCMinutes()}
 function dateMid(date,time='12:00'){return `${date}T${clockParts(time).text}:00+08:00`}
-function mealPhaseRank(item){const t=flexibleTiming(item.med,item.schedule);if(/起床后/.test(t))return 0;if(/餐前/.test(t))return 1;if(/随餐/.test(t))return 2;if(/餐后/.test(t))return 3;return 4}
-function morningMedicationRank(item){const minutes=clockParts(item.schedule.time).total;if(minutes>=10*60)return null;const key=guideFor(item.med?.name)?.key;if(key==='valsartan-amlodipine')return 0;if(key==='aspirin')return 1;if(key==='leritrelvir')return 2;return null}
-function planItems(date=selected){const items=[];state.meds.forEach(med=>{(med.regimens||[]).forEach(regimen=>{(regimen.schedules||[]).filter(s=>s.enabled!==false&&s.kind!=='prn').forEach(schedule=>{const planned=dateMid(date,schedule.time||'00:00'),t=Date.parse(planned);if(t>=Date.parse(regimen.effectiveFrom)&&(!regimen.effectiveTo||t<Date.parse(regimen.effectiveTo)))items.push({med,regimen,schedule,key:`${med.id}::${schedule.id}`})})})});return items.sort((a,b)=>{const ar=morningMedicationRank(a),br=morningMedicationRank(b);if(ar!==null||br!==null){if(ar===null)return 1;if(br===null)return-1;if(ar!==br)return ar-br}const time=clockParts(a.schedule.time).total-clockParts(b.schedule.time).total;if(time)return time;const phase=mealPhaseRank(a)-mealPhaseRank(b);if(phase)return phase;return String(a.med.name||'').localeCompare(String(b.med.name||''),'zh-CN')})}
+function mealPhaseRank(item){const t=flexibleTiming(item.med,item.schedule);if(/起床后/.test(t))return 0;if(/餐前/.test(t))return 1;if(/随餐/.test(t))return 2;if(/餐后/.test(t))return 3;if(/睡前/.test(t))return 4;return 5}
+function canonicalSchedule(item){const exact=schedulePresetFor(item.schedule);if(exact)return exact;const period=schedulePeriodFor(item.schedule),key=guideFor(item.med?.name)?.key;let id='';if(key==='valsartan-amlodipine')id='wake';else if(key==='aspirin')id='breakfast-before-30';else if(key==='rosuvastatin')id='bedtime';else if(key==='leritrelvir')id=period==='早上'?'breakfast-with':period==='中午'?'lunch-with':'dinner-with';else if(key==='bifidobacterium-quadruple'||key==='glutathione')id=period==='早上'?'breakfast-after':period==='中午'?'lunch-after':'dinner-after';return SCHEDULE_PRESETS.find(p=>p.id===id)||{period,time:item.schedule?.time||'00:00',label:item.schedule?.label||''}}
+function planItems(date=selected){const items=[];state.meds.forEach(med=>{(med.regimens||[]).forEach(regimen=>{(regimen.schedules||[]).filter(s=>s.enabled!==false&&s.kind!=='prn').forEach(schedule=>{const planned=dateMid(date,schedule.time||'00:00'),t=Date.parse(planned);if(t>=Date.parse(regimen.effectiveFrom)&&(!regimen.effectiveTo||t<Date.parse(regimen.effectiveTo)))items.push({med,regimen,schedule,key:`${med.id}::${schedule.id}`})})})});return items.sort((a,b)=>{const ac=canonicalSchedule(a),bc=canonicalSchedule(b),period=SCHEDULE_PERIODS.indexOf(ac.period)-SCHEDULE_PERIODS.indexOf(bc.period);if(period)return period;const time=clockParts(ac.time).total-clockParts(bc.time).total;if(time)return time;const phase=mealPhaseRank(a)-mealPhaseRank(b);if(phase)return phase;return String(a.med.name||'').localeCompare(String(b.med.name||''),'zh-CN')})}
 function logFor(item,date=selected){return state.days[date]?.medicationLogs?.[item.key]||null}
 function isHandled(log){return log&&['done','missed','cancelled'].includes(log.status)}
 function progress(date=selected){const list=planItems(date),logs=state.days[date]?.medicationLogs||{};const values=list.map(i=>logs[i.key]).filter(Boolean);return{total:list.length,done:values.filter(x=>x.status==='done').length,withheld:values.filter(x=>x.status==='withheld').length,missed:values.filter(x=>x.status==='missed').length,cancelled:values.filter(x=>x.status==='cancelled').length,handled:values.filter(isHandled).length,pending:list.filter(i=>!isHandled(logs[i.key])).length}}
@@ -269,22 +269,27 @@ function renderScheduleEditor(schedules=[]){const root=$('regimenScheduleRows');
 function collectSchedules(){const rows=[...$('regimenScheduleRows').querySelectorAll('.schedule-row')];if(!rows.length)throw new Error('请至少添加一次用药');const seen=new Set();return rows.map((row,i)=>{const select=row.querySelector('select'),option=select?.selectedOptions?.[0];if(!option||!option.value)throw new Error(`第 ${i+1} 次用药还没有选择服用时点`);const time=option.dataset.time,label=option.dataset.label,period=option.dataset.period,key=`${time}|${label}`;if(seen.has(key))throw new Error(`“${label}”重复，请删除多余的一项`);seen.add(key);return{id:row.dataset.scheduleId||uuid('schedule'),time,label,period,kind:'fixed',enabled:true}})}
 function addConfirmedNewMedicines(){
 const definitions=[
-{match:/双歧杆菌四联活菌/,name:'双歧杆菌四联活菌片',purpose:'调节肠道菌群',generalNote:'按医生最新医嘱服用。',dose:'每次3片',instructions:'早、中、晚餐后服用；用温水送服，避免使用过热的水。',schedules:[['08:00','早餐后'],['12:00','午餐后'],['18:00','晚餐后']]},
-{match:/谷胱甘肽片/,name:'谷胱甘肽片',purpose:'保肝治疗',generalNote:'按医生最新医嘱服用。',dose:'每次4片',instructions:'早、中、晚餐后服用。',schedules:[['08:00','早餐后'],['12:00','午餐后'],['18:00','晚餐后']]}
+{match:/双歧杆菌四联活菌/,name:'双歧杆菌四联活菌片',purpose:'调节肠道菌群',generalNote:'按医生最新医嘱服用。',dose:'每次3片',instructions:'早、中、晚餐后服用；用温水送服，避免使用过热的水。',schedules:[['08:30','早餐后','早上'],['12:30','午餐后','中午'],['18:30','晚餐后','晚上']]},
+{match:/谷胱甘肽片/,name:'谷胱甘肽片',purpose:'保肝治疗',generalNote:'按医生最新医嘱服用。',dose:'每次4片',instructions:'早、中、晚餐后服用。',schedules:[['08:30','早餐后','早上'],['12:30','午餐后','中午'],['18:30','晚餐后','晚上']]}
 ];
 let added=0,updated=0;
 definitions.forEach(def=>{
 const med=state.meds.find(m=>def.match.test(String(m.name||'')));
+const makeSchedules=current=>def.schedules.map(([time,label,period],i)=>({id:current?.schedules?.[i]?.id||uuid('schedule'),time,label,period,kind:'fixed',enabled:true}));
 if(!med){
 const medId=uuid('med');
 enqueue(operation('upsertMedicationText',{id:medId,name:def.name,purpose:def.purpose,generalNote:def.generalNote,needsConfirmation:false,testOnly:false}));
-enqueue(operation('adjustRegimen',{medId,effectiveFrom:now(),changeReason:'医生新增用药',regimen:{id:uuid('regimen'),dose:def.dose,schedules:def.schedules.map(([time,label])=>({id:uuid('schedule'),time,label,kind:'fixed',enabled:true})),instructions:def.instructions}}));
+enqueue(operation('adjustRegimen',{medId,effectiveFrom:now(),changeReason:'医生新增用药',regimen:{id:uuid('regimen'),dose:def.dose,schedules:makeSchedules(),instructions:def.instructions}}));
 added++;return;
 }
-const current=latestRegimen(med),currentLabels=(current?.schedules||[]).filter(s=>s.enabled!==false).map(s=>`${s.time}|${String(s.label||'').trim()}`).join(';'),targetLabels=def.schedules.map(([time,label])=>`${time}|${label}`).join(';'),oldLabels='08:00|早餐随餐;12:00|午餐随餐;18:00|晚餐随餐';
+const current=latestRegimen(med),currentLabels=(current?.schedules||[]).filter(s=>s.enabled!==false).map(s=>`${s.time}|${String(s.label||'').trim()}`).join(';'),targetLabels=def.schedules.map(([time,label])=>`${time}|${label}`).join(';');
+const legacyLabels=new Set([
+'08:00|早餐随餐;12:00|午餐随餐;18:00|晚餐随餐',
+'08:00|早餐后;12:00|午餐后;18:00|晚餐后'
+]);
 if(String(current?.dose||'').trim()===def.dose&&currentLabels===targetLabels&&String(current?.instructions||'').trim()===def.instructions)return;
-if(currentLabels!==oldLabels)return;
-enqueue(operation('adjustRegimen',{medId:med.id,effectiveFrom:now(),changeReason:'医生确认改为餐后服用',regimen:{id:uuid('regimen'),dose:def.dose,schedules:def.schedules.map(([time,label],i)=>({id:current?.schedules?.[i]?.id||uuid('schedule'),time,label,kind:'fixed',enabled:true})),instructions:def.instructions}}));
+if(!legacyLabels.has(currentLabels))return;
+enqueue(operation('adjustRegimen',{medId:med.id,effectiveFrom:now(),changeReason:'修正为早、中、晚餐后服用',regimen:{id:uuid('regimen'),dose:def.dose,schedules:makeSchedules(current),instructions:def.instructions}}));
 updated++;
 });
 return{added,updated};
